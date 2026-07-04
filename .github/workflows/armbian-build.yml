@@ -41,18 +41,3 @@ jobs:
         with:
           name: orangepizero2-image
           path: build/output/images/*.img
-
-      # ========== 新增：发布为 GitHub Release ==========
-      - name: Create GitHub Release and Upload Asset
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: "v1.0.0-${{ github.run_number }}"
-          name: "Armbian Image for Orange Pi Zero 2 (Build #${{ github.run_number }})"
-          body: |
-            自动编译的 Armbian 镜像，基于 orangepizero2 板型。
-            内核版本: legacy (5.15)
-            系统版本: Debian 12 (bookworm)
-          files: |
-            build/output/images/*.img
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
