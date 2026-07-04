@@ -1,0 +1,58 @@
+name: Build Armbian for H616 (Fixed ATF)
+
+on:
+  push:
+    branches: [ "develop" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Clone Armbian build system
+        run: |
+          rm -rf build
+          git clone --depth=1 https://github.com/armbian/build.git build
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y ccache debian-archive-keyring debootstrap device-tree-compiler dwarves
+          sudo apt install -y gcc-arm-linux-gnueabihf jq libbison-dev libc6-dev-armhf-cross
+          sudo apt install -y libelf-dev libfl-dev liblz4-tool libpython2.7-dev libusb-1.0-0-dev
+          sudo apt install -y pigz pixz pv swig pkg-config python3-distutils qemu-user-static u-boot-tools
+          sudo apt install -y distcc uuid-dev lib32ncurses-dev lib32stdc++6 apt-cacher-ng
+          sudo apt install -y aptly aria2 libfdt-dev libssl-dev
+
+      - name: Build with ATF platform fix
+        run: |
+          cd build
+          export ATF_PLAT="sun50i_h616"
+          sudo -E ./compile.sh \
+            BOARD=orangepizero2 \
+            BRANCH=legacy \
+            RELEASE=bookworm \
+            BUILD_DESKTOP=no \
+            BUILD_MINIMAL=yes \
+            KERNEL_CONFIGURE=no
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: orangepizero2-image
+          path: build/output/images/*.img
+
+      # ========== 新增：发布为 GitHub Release ==========
+      - name: Create GitHub Release and Upload Asset
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: "v1.0.0-${{ github.run_number }}"
+          name: "Armbian Image for Orange Pi Zero 2 (Build #${{ github.run_number }})"
+          body: |
+            自动编译的 Armbian 镜像，基于 orangepizero2 板型。
+            内核版本: legacy (5.15)
+            系统版本: Debian 12 (bookworm)
+          files: |
+            build/output/images/*.img
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
